@@ -63,5 +63,5 @@ def add_bounding_box(image_path: str,bounding_box: list,label: str,box_color: tu
         cv2.imshow("Image",img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    return img
+    return img,value
 
