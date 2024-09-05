@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 __all__ = ["load_env_file"]
 
-def load_env_file(file_path='.env'):
+def load_env_file(file_path='./env'):
     """
     Load environment variables from a .env file.
 

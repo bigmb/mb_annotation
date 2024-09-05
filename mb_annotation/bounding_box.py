@@ -57,11 +57,29 @@ def add_bounding_box(image_path: str,bounding_box: [dict,list],label: str,box_co
                 value[1] = int(value[1]*(img_width/1000))
                 value[0] = int(value[0]*(img_height/1000))
                 value[3] = int(value[3]*(img_width/1000))
-            value[2] = int(value[2]*(img_height/1000))
-        cv2.rectangle(img, (value[1],value[0]), (value[3],value[2]), (0, 0, 255), 4)
+                value[2] = int(value[2]*(img_height/1000))
+            cv2.rectangle(img, (value[1],value[0]), (value[3],value[2]), (0, 0, 255), 4)
         cv2.putText(img, key, (value[1],value[0]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     elif isinstance(bounding_box,list):
-        for value in bounding_box:
+        if isinstance(bounding_box[0],list):
+            for value in bounding_box:
+                value = value[0]
+                if box_resize:
+                    img_height,img_width,_ = img.shape
+                    value[1] = int(value[1]*(img_width/1000))
+                    value[0] = int(value[0]*(img_height/1000))
+                    value[3] = int(value[3]*(img_width/1000))
+                    value[2] = int(value[2]*(img_height/1000))  
+                cv2.rectangle(img, (value[1],value[0]), (value[3],value[2]), (0, 0, 255), 4)
+                cv2.putText(img, label, (value[1],value[0]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        else:
+            value = bounding_box
+            if box_resize:
+                img_height,img_width,_ = img.shape
+                value[1] = int(value[1]*(img_width/1000))
+                value[0] = int(value[0]*(img_height/1000))
+                value[3] = int(value[3]*(img_width/1000))
+                value[2] = int(value[2]*(img_height/1000))
             cv2.rectangle(img, (value[1],value[0]), (value[3],value[2]), (0, 0, 255), 4)
             cv2.putText(img, label, (value[1],value[0]), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     if show:
