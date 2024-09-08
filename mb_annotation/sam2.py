@@ -4,10 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
-from .bounding_box import generate_bounding_box
 import cv2
 
-__all__ = ["show_anns","get_mask_generator","get_mask"]
+__all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks"]
 
 def show_anns(anns, borders=True, show=True):
     """
@@ -75,7 +74,7 @@ def get_final_similar_box(box1,box2: list):
             index = box2.index(i)
     return best_box,index
 
-def get_mask(image_path,bbox_value,sam2_checkpoint,model_cfg,device='cpu',show_full: bool=False,show_final: bool=False,*kwargs):
+def get_mask_for_bbox(image_path,bbox_value,sam2_checkpoint,model_cfg,device='cpu',show_full: bool=False,show_final: bool=False,*kwargs):
     """
     get the mask
     Args:
@@ -89,6 +88,7 @@ def get_mask(image_path,bbox_value,sam2_checkpoint,model_cfg,device='cpu',show_f
     Returns:
         mask (np.array): mask
         bbox (list): bounding box
+        main_bbox (list): main bounding box
     """
     print('Getting mask')
     image = cv2.imread(image_path)
@@ -102,12 +102,33 @@ def get_mask(image_path,bbox_value,sam2_checkpoint,model_cfg,device='cpu',show_f
 
     main_bbox = []
     for i in mask_full:
-        mask_val = [i['bbox'][0]*image_width/1000,i['bbox'][1]*image_height/1000,
-                    (i['bbox'][0]+i['bbox'][2])*image_width/1000,(i['bbox'][1]+i['bbox'][3])*image_height/1000]
+        mask_val = [i['bbox'][1],i['bbox'][0],
+                    (i['bbox'][3]+i['bbox'][1]),(i['bbox'][2]+i['bbox'][0])]  ## adding the bbox values to get the correct bbox for the bounding bbox function
         main_bbox.append(mask_val)
+
 
     value_list,index = get_final_similar_box(bbox_value,main_bbox)
     final_mask = mask_full[index]
+    final_bbox = [final_mask['bbox'][1],final_mask['bbox'][0],
+                    (final_mask['bbox'][3]+final_mask['bbox'][1]),(final_mask['bbox'][2]+final_mask['bbox'][0])]
     if show_final:
         show_anns(final_mask)
-    return final_mask['segmentation'],final_mask['bbox']
+    return final_mask['segmentation'],final_bbox,main_bbox
+
+def get_all_masks(image_path,sam2_checkpoint,model_cfg,device='cpu',*kwargs):
+    """
+    get all the masks
+    Args:
+        image_path (str): path to the image
+        sam2_checkpoint (str): path to the sam2 checkpoint
+        model_cfg (str): path to the model configuration
+    Returns:
+        masks (list): list of masks
+    """
+    print('Getting all masks')
+    image = cv2.imread(image_path)
+    image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+    mask_generator = get_mask_generator(sam2_checkpoint,model_cfg,device)
+    mask_full = mask_generator.generate(image)
+    print('Getting final mask')
+    return mask_full
