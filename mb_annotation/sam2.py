@@ -93,6 +93,7 @@ def get_mask(image_path,bbox_value,sam2_checkpoint,model_cfg,device='cpu',show_f
     print('Getting mask')
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+    image_height,image_width,_ = image.shape
     mask_generator = get_mask_generator(sam2_checkpoint,model_cfg,device)
     mask_full = mask_generator.generate(image)
     if show_full:
@@ -101,7 +102,8 @@ def get_mask(image_path,bbox_value,sam2_checkpoint,model_cfg,device='cpu',show_f
 
     main_bbox = []
     for i in mask_full:
-        mask_val = [i['bbox'][0],i['bbox'][1],i['bbox'][0]+i['bbox'][2],i['bbox'][1]+i['bbox'][3]]
+        mask_val = [i['bbox'][0]*image_width/1000,i['bbox'][1]*image_height/1000,
+                    (i['bbox'][0]+i['bbox'][2])*image_width/1000,(i['bbox'][1]+i['bbox'][3])*image_height/1000]
         main_bbox.append(mask_val)
 
     value_list,index = get_final_similar_box(bbox_value,main_bbox)
