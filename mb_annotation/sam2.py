@@ -101,7 +101,7 @@ def get_mask(image_path,bbox_value,sam2_checkpoint,model_cfg,device='cpu',show_f
 
     main_bbox = []
     for i in mask_full:
-        mask_val = [i['bbox'][1],i['bbox'][0],i['bbox'][1]+i['bbox'][3],i['bbox'][0]+i['bbox'][2]]
+        mask_val = [i['bbox'][0],i['bbox'][1],i['bbox'][0]+i['bbox'][2],i['bbox'][1]+i['bbox'][3]]
         main_bbox.append(mask_val)
 
     value_list,index = get_final_similar_box(bbox_value,main_bbox)
