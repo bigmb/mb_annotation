@@ -12,7 +12,8 @@ from os.path import isfile, join
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
-__all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor"]
+__all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor",
+           "show_masks_image","show_box","show_points","image_predictor"]
 
 def show_anns(anns, borders=True, show=True):
     """
@@ -177,6 +178,19 @@ def show_mask_image(mask, ax, random_color=False, borders = True):
     ax.imshow(mask_image)
 
 def show_masks_image(image, masks, scores, point_coords=None, box_coords=None, input_labels=None, borders=True):
+    """
+    Display masks on a given image.
+    Args:
+        image (np.ndarray): The image on which to display the masks.
+        masks (list): List of masks to be displayed.
+        scores (list): List of scores corresponding to the masks.
+        point_coords (list, optional): List of point coordinates. Defaults to None.
+        box_coords (list, optional): List of box coordinates. Defaults to None.
+        input_labels (list, optional): List of input labels. Defaults to None.
+        borders (bool, optional): If True, display the borders of the masks. Defaults to True.
+    Returns:
+        None
+    """
     for i, (mask, score) in enumerate(zip(masks, scores)):
         plt.figure(figsize=(10, 10))
         plt.imshow(image)
@@ -225,7 +239,9 @@ class video_predictor:
     """
     Segmentation anything 2 video predictor
     Args:
-
+        model_cfg (str): Path to the model config file.
+        sam2_checkpoint (str): Path to the model checkpoint file.
+        device (str, optional): Device on which to run the model. Defaults to 'cpu'.
     Returns:
         None
     """
@@ -311,7 +327,9 @@ class image_predictor:
     """
     Class for image prediction
     Args:
-
+        model_cfg (str): Path to the model config file.
+        sam2_checkpoint (str): Path to the model checkpoint file.
+        device (str, optional): Device on which to run the model. Defaults to 'cpu'.
     Returns:
         None
     """
@@ -319,8 +337,71 @@ class image_predictor:
         self.predictor = SAM2ImagePredictor(build_sam2(model_cfg, sam2_checkpoint, device=device))
 
     def set_image(self,image):
-        self.set_image = self.predictor.set_image(image)
+        """
+        Setting image
+        Args:
+            image (str): Path to the image or numpy array
+        Returns:
+            None
+        """
+        if isinstance(image, str):
+            image = cv2.imread(image)
+            self.image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        self.image_set = self.predictor.set_image(self.image)
 
+    def predict_item(self,bbox:list[list]= None,points: list[list]=None,labels: list=None,show=True,gemini_bbox=True,**kwargs):
+        """
+        Getting prediction from bounding box or points.
+        Args:
+            bbox (list[list], optional): Bounding box. Defaults to None.
+            points (list[list], optional): Points. Defaults to None.
+            labels (list, optional): Labels. Defaults to None.
+            show (bool, optional): Show the image. Defaults to True.
+        Returns:
+            masks, scores, logits
+        """
+        if points and labels:
+            points = np.array(points,dtype=np.float32)
+            labels = np.array(labels,np.int32)
+            print(f"points : {points}")
+            print(f"labels : {labels}")
+
+        if bbox:
+            bbox = np.array(bbox,dtype=np.float32)
+            if gemini_bbox:
+                bbox = bbox[[1,0,3,2]]
+            print(f"bbox : {bbox}")
+
+        predict_args ={}
+
+        if points is not None:
+            predict_args["point_coords"] = points
+            predict_args["point_labels"] = labels
+
+        if bbox is not None:
+            predict_args["box"] = bbox
+        print(predict_args)
+
+        masks, scores, logits = self.predictor.predict(**predict_args,multimask_output=False,**kwargs)
+
+        sorted_ind = np.argsort(scores)[::-1]
+        masks = masks[sorted_ind]
+        scores = scores[sorted_ind]
+        logits = logits[sorted_ind]
+
+        if show:
+            plt.figure(figsize=(9, 6))
+            plt.imshow(self.image)
+            if points is not None:
+                show_points(points, labels, plt.gca())
+            if bbox is not None:
+                show_box(bbox, plt.gca())
+            # for i, mask in enumerate(masks):
+            #     show_mask(mask, plt.gca(), random_color=True)
+            show_masks_image(self.image, masks, scores, point_coords=points, box_coords=bbox, input_labels=labels)
+
+        return masks, scores, logits
+    
     
     
 
