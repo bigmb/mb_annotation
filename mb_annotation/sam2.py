@@ -7,12 +7,11 @@ from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
 import cv2
 from sam2.build_sam import build_sam2_video_predictor
-import os
 from os import listdir
 from os.path import isfile, join
 
 
-__all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks"]
+__all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor"]
 
 def show_anns(anns, borders=True, show=True):
     """
@@ -200,7 +199,7 @@ class video_predictor:
     def __init__(self,model_cfg,sam2_checkpoint,device='cpu') -> None:
         self.predictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=device)
 
-    def inference(self,video_image_folder):
+    def inference_state(self,video_image_folder):
         """
         Initializing video from path of video frames folder
         """
@@ -208,7 +207,7 @@ class video_predictor:
         self.frame_names = [f for f in listdir(self.video_image_folder) if isfile(join(self.video_image_folder, f))]
         self.frame_names = sorted(self.frame_names)
         self.joined_frame_names = [self.video_image_folder+'/'+self.frame_names[i] for i in range(len(self.frame_names))]
-        self.inference = self.predictor.init_state(video_path=video_image_folder)
+        self.inference_state = self.predictor.init_state(video_path=video_image_folder)
 
     def reset_state(self):
         """
@@ -216,7 +215,7 @@ class video_predictor:
         """
         self.predictor.reset_state(self.inference)
     
-    def predict(self,bbox:list[list]= None,points: list[list]=None,labels: list=None,frame_idx=0,show=True,image_loc=None,**kwargs):
+    def predict_item(self,bbox:list[list]= None,points: list[list]=None,labels: list=None,frame_idx=0,show=True,image_loc=None,**kwargs):
         """
         Getting prediction from bounding box. Can add points to determine the location of segmentation
         """
@@ -224,12 +223,15 @@ class video_predictor:
         if points and labels:
             points = np.array(points,dtype=np.float32)
             labels = np.array(labels,np.int32)
+            print(f"points : {points}")
+            print(f"labels : {labels}")
             prompts={}
             prompts[ann_obj_id] = points, labels
+
         if bbox:
             bbox = np.array(bbox,dtype=np.float32)
+            print(f"bbox : {bbox}")
 
-        assert len(points)==len(labels),"Length of points not equal to length of labels"
 
         _, out_obj_ids, out_mask_logits = self.predictor.add_new_points_or_box(
                                             inference_state=self.inference_state,
@@ -245,11 +247,30 @@ class video_predictor:
             if image_loc==None:
                 image_loc =self.joined_frame_names[0]
             plt.imshow(Image.open(image_loc))
-            if points and labels:
+            try: 
                 show_points(points, labels, plt.gca())
+            except:
+                pass
             for i, out_obj_id in enumerate(out_obj_ids):
-                if points and labels:
+                try:
                     show_points(*prompts[out_obj_id], plt.gca())
+                except:
+                    pass
                 show_mask((out_mask_logits[i] > 0.0).cpu().numpy(), plt.gca(), obj_id=out_obj_id)
 
+    def predict_video(self,vis_frame_stride=30):
+        """
+        Using the predicting item and propogate it through the all frames.
+        """
+        video_segments = {} 
+        for out_frame_idx, out_obj_ids, out_mask_logits in self.predictor.propagate_in_video(self.inference_state):
+            video_segments[out_frame_idx] = {out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy() for i, out_obj_id in enumerate(out_obj_ids)}
+
+        plt.close("all")
+        for out_frame_idx in range(0, len(self.frame_names), vis_frame_stride):
+            plt.figure(figsize=(6, 4))
+            plt.title(f"frame {out_frame_idx}")
+            plt.imshow(Image.open(self.joined_frame_names[out_frame_idx]))
+            for out_obj_id, out_mask in video_segments[out_frame_idx].items():
+                show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
 
