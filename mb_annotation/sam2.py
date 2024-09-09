@@ -9,6 +9,7 @@ import cv2
 from sam2.build_sam import build_sam2_video_predictor
 from os import listdir
 from os.path import isfile, join
+from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
 __all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor"]
@@ -159,6 +160,38 @@ def show_mask(mask, ax, obj_id=None, random_color=False):
     mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
     ax.imshow(mask_image)
 
+def show_mask_image(mask, ax, random_color=False, borders = True):
+    if random_color:
+        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+    else:
+        color = np.array([30/255, 144/255, 255/255, 0.6])
+    h, w = mask.shape[-2:]
+    mask = mask.astype(np.uint8)
+    mask_image =  mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+    if borders:
+        import cv2
+        contours, _ = cv2.findContours(mask,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+        # Try to smooth contours
+        contours = [cv2.approxPolyDP(contour, epsilon=0.01, closed=True) for contour in contours]
+        mask_image = cv2.drawContours(mask_image, contours, -1, (1, 1, 1, 0.5), thickness=2) 
+    ax.imshow(mask_image)
+
+def show_masks_image(image, masks, scores, point_coords=None, box_coords=None, input_labels=None, borders=True):
+    for i, (mask, score) in enumerate(zip(masks, scores)):
+        plt.figure(figsize=(10, 10))
+        plt.imshow(image)
+        show_mask_image(mask, plt.gca(), borders=borders)
+        if point_coords is not None:
+            assert input_labels is not None
+            show_points(point_coords, input_labels, plt.gca())
+        if box_coords is not None:
+            # boxes
+            show_box(box_coords, plt.gca())
+        if len(scores) > 1:
+            plt.title(f"Mask {i+1}, Score: {score:.3f}", fontsize=18)
+        plt.axis('off')
+        plt.show()
+
 def show_points(coords, labels, ax, marker_size=200):
     """
     Display points on a given axis.
@@ -273,4 +306,23 @@ class video_predictor:
             plt.imshow(Image.open(self.joined_frame_names[out_frame_idx]))
             for out_obj_id, out_mask in video_segments[out_frame_idx].items():
                 show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+
+class image_predictor:
+    """
+    Class for image prediction
+    Args:
+
+    Returns:
+        None
+    """
+    def __init__(self,model_cfg,sam2_checkpoint,device='cpu') -> None:
+        self.predictor = SAM2ImagePredictor(build_sam2(model_cfg, sam2_checkpoint, device=device))
+
+    def set_image(self,image):
+        self.set_image = self.predictor.set_image(image)
+
+    
+    
+
+
 
