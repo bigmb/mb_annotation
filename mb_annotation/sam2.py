@@ -264,7 +264,7 @@ class video_predictor:
         """
         self.predictor.reset_state(self.inference)
     
-    def predict_item(self,bbox:list[list]= None,points: list[list]=None,labels: list=None,frame_idx=0,show=True,image_loc=None,**kwargs):
+    def predict_item(self,bbox:list[list]= None,points: list[list]=None,labels: list=None,frame_idx=0,show=True,image_loc=None,gemini_bbox=True,**kwargs):
         """
         Getting prediction from bounding box. Can add points to determine the location of segmentation
         """
@@ -279,6 +279,8 @@ class video_predictor:
 
         if bbox:
             bbox = np.array(bbox,dtype=np.float32)
+            if gemini_bbox:
+                bbox = bbox[[1,0,3,2]]
             print(f"bbox : {bbox}")
 
 
