@@ -349,6 +349,8 @@ class image_predictor:
         if isinstance(image, str):
             image = cv2.imread(image)
             self.image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        else:
+            self.image = image
         self.image_set = self.predictor.set_image(self.image)
 
     def predict_item(self,bbox:list[list]= None,points: list[list]=None,labels: list=None,show=True,gemini_bbox=True,**kwargs):
