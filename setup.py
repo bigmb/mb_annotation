@@ -7,7 +7,7 @@ import os
 VERSION_FILE = os.path.join(os.path.dirname(__file__), "VERSION.txt")
 print(VERSION_FILE)
 setup(
-    name="mb_annotaion",
+    name="mb_annotation",
     description="Annotation tool for the MB project",
     author=["Malav Bateriwala"],
     packages=find_packages(),
