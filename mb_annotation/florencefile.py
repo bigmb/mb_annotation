@@ -85,7 +85,7 @@ class florence_model:
             output_ids = self.model.generate(inputs["input_ids"],pixel_values=inputs["pixel_values"],
                                              max_new_tokens=1024,early_stopping=False,do_sample=False,num_beams=3)
             generated_text = self.processor.batch_decode(output_ids, skip_special_tokens=False)[0]
-            parsed_answer = self.processor.post_process_generation(generated_text, task=self.task_type, 
+            parsed_answer = self.processor.post_process_generation(generated_text, task=i, 
                                                                 image_size=(self.image.width, self.image.height))
             final_ans.append(parsed_answer)
         return final_ans
