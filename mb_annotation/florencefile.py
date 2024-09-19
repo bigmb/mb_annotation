@@ -1,8 +1,8 @@
 ## file for florence functions
 
 import torch
-from PIL import Image, ImageDraw, ImageFont
-from transformers import AutoProcessor, AutoModelForCausalLM, AutoTokenizer
+from PIL import Image, ImageDraw
+from transformers import AutoProcessor, AutoModelForCausalLM
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -29,7 +29,6 @@ class florence_model:
             device = device
         self.device = device
         self.model_name = model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True).to(device)
         self.processor = AutoProcessor.from_pretrained(model_name,trust_remote_code=True)
 
@@ -77,10 +76,10 @@ class florence_model:
         """
         final_ans = []
         for i in self.task_type:
-            if prompt == None:
-                prompt = self.task_type
-            else:
+            if prompt:
                 prompt = self.task_type + prompt
+            else:
+                prompt = self.task_type
         
             inputs = self.processor(text=prompt, images=self.image, return_tensors="pt").to(self.device)
             output_ids = self.model.generate(inputs["input_ids"],pixel_values=inputs["pixel_values"],
