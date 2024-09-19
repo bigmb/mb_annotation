@@ -29,9 +29,9 @@ class florence_model:
             device = device
         self.device = device
         self.model_name = model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
-        self.processor = AutoProcessor.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True).to(device)
+        self.processor = AutoProcessor.from_pretrained(model_name,trust_remote_code=True)
 
     def get_task_types(self):
         """
