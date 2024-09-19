@@ -99,7 +99,7 @@ class florence_model:
         Returns:
             fig (matplotlib figure): Figure
         """
-        fig, ax = plt.subplots(figsize=(15, 10))
+        fig, ax = plt.subplots(figsize=(12, 8))
         if image is None:
             image = self.image
         if show:
@@ -126,7 +126,6 @@ class florence_model:
             plt.show()
         if save_path is not None:
             fig.savefig(save_path)
-        return fig
 
     def draw_polygons(self, prediction,image=None, fill_mask=False,show=True,save_path=None):
         """
