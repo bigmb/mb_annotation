@@ -77,9 +77,9 @@ class florence_model:
         final_ans = []
         for i in self.task_type:
             if prompt:
-                prompt = self.task_type + prompt
+                prompt = i + prompt
             else:
-                prompt = self.task_type
+                prompt = i
         
             inputs = self.processor(text=prompt, images=self.image, return_tensors="pt").to(self.device)
             output_ids = self.model.generate(inputs["input_ids"],pixel_values=inputs["pixel_values"],
