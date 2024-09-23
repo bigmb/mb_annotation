@@ -449,6 +449,8 @@ class load_florence_dataset:
                 for j in range(len(bbox_list)):
                     if isinstance(bbox_list[j],str):
                         bbox_list[j] = eval(bbox_list[j])
+                    bbox_list[j][2] = bbox_list[j][2]-bbox_list[j][0]
+                    bbox_list[j][3] = bbox_list[j][3]-bbox_list[j][1]
                     temp_str = temp_str+ f"{labels_list[j]}<loc_{int(bbox_list[j][0])}><loc_{int(bbox_list[j][1])}><loc_{int(bbox_list[j][2])}><loc_{int(bbox_list[j][3])}>"
                 self.df.at[i, 'suffix'] = temp_str
                 temp_dict['image'] = row['image_path']
