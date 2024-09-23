@@ -2,7 +2,6 @@
 
 import torch
 from PIL import Image, ImageDraw
-from transformers import AutoProcessor, AutoModelForCausalLM
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -31,7 +30,7 @@ class florence_model:
         None
     """
 
-    def __init__(self,model_name="microsoft/Florence-2-large",device='cpu') -> None:
+    def __init__(self,model_name="microsoft/Florence-2-base",finetuned_model=False,device='cpu') -> None:
 
         if device == 'cpu':
             device = "cpu"
@@ -41,8 +40,13 @@ class florence_model:
             device = device
         self.device = device
         self.model_name = model_name
-        self.model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True).to(device)
-        self.processor = AutoProcessor.from_pretrained(model_name,trust_remote_code=True)
+        if finetuned_model:
+            self.model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True).to(device)
+            self.processor = AutoProcessor.from_pretrained(model_name,trust_remote_code=True)
+        else:
+            os.makedirs("./florence_model_cache", exist_ok=True)
+            self.model = AutoModelForCausalLM.from_pretrained(model_name,cache_dir="./florence_model_cache",trust_remote_code=True).to(device)
+            self.processor = AutoProcessor.from_pretrained(model_name,trust_remote_code=True)
 
     def get_task_types(self):
         """
@@ -420,7 +424,7 @@ class load_florence_dataset:
             val_indices = np.random.choice(self.df.index, size=int(len(self.df) * 0.2), replace=False)
             self.df.loc[val_indices, 'train_type'] = 'validation'
 
-        final_data = []
+        final_data = pd.DataFrame()
         if 'suffix' not in self.df.columns:
             self.df['suffix'] = None
             temp_dict={}
@@ -448,8 +452,9 @@ class load_florence_dataset:
                 temp_dict['image'] = row['image_path']
                 temp_dict['prefix'] = prefix_val
                 temp_dict['suffix'] = temp_str
-                final_data.append(temp_dict)
-        self.final_csv = pd.DataFrame(final_data)
+                temp_df = pd.DataFrame([temp_dict])
+                final_data = pd.concat([final_data, temp_df],ignore_index=True)
+        self.final_csv = final_data
         self.final_csv.to_csv('./final_data_florence.csv',index=False)
         print(f'final data example : {final_data[0]}')
         print(f'final csv example: {self.final_csv.head(2)}')
