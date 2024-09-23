@@ -18,8 +18,9 @@ from typing import List, Dict, Any, Tuple, Generator
 from peft import LoraConfig, get_peft_model
 from torch.utils.data import Dataset, DataLoader
 from functools import partial
+import os
 
-__all__ = ["florence_model"]
+__all__ = ["florence_model", "my_collate_fn","load_florence_dataset","dataset_data"]
 
 class florence_model:
     """
@@ -139,6 +140,21 @@ class florence_model:
         if save_path is not None:
             fig.savefig(save_path)
 
+    def plot_bboxes_on_image(self,image, bboxes, labels):
+        plt.figure(figsize=(10, 8))
+        plt.imshow(image)
+
+        ax = plt.gca()
+        for bbox, label in zip(bboxes, labels):
+            xmin, ymin, xmax, ymax = bbox
+            width = xmax - xmin
+            height = ymax - ymin
+            rect = plt.Rectangle((xmin, ymin), width, height, fill=False, edgecolor='red', linewidth=2)
+            ax.add_patch(rect)
+            ax.text(xmin, ymin - 2, label, bbox=dict(facecolor='red', alpha=0.5), fontsize=12, color='white')
+        plt.axis('off')
+        plt.show()
+
     def draw_polygons(self, prediction,image=None, fill_mask=False,show=True,save_path=None):
         """
         Draws segmentation masks with polygons on an image.
@@ -235,10 +251,121 @@ class florence_model:
         Args:
             None
         Returns:
-            None
+            partial_collate_fn
         """
         partial_collate = partial(my_collate_fn, processor=self.processor)
         return partial_collate
+    
+    def load_lora_data(self):
+        """
+        Function to load lora data.
+        Default param set. Can be changed as per requirement. Currently hard coded
+        Args:
+            None
+        Returns:
+            peft_model
+        """
+        config = LoraConfig(r=8,lora_alpha=8,
+                            target_modules=["q_proj", "o_proj", "k_proj", "v_proj", "linear", "Conv2d", "lm_head", "fc2"],
+                            task_type="CAUSAL_LM",
+                            lora_dropout=0.05,
+                            bias="none",
+                            inference_mode=False,
+                            use_rslora=True,
+                            init_lora_weights="gaussian",)
+
+        peft_model = get_peft_model(self.model, config)
+        peft_model.print_trainable_parameters()
+
+        return peft_model
+    
+    def florence2_inference_results(self, dataset: Dataset, count: int):
+        count = min(count, len(dataset.dataset))
+        for i in range(count):
+            prefix,suffix, image = dataset.dataset[i]
+            inputs = self.processor(text=prefix, images=image, return_tensors="pt").to(self.device)
+        #inputs = processor(text=prompt, images=image, return_tensors="pt")
+    
+            generated_ids = self.model.generate(
+                input_ids=inputs["input_ids"],
+                pixel_values=inputs["pixel_values"],
+                max_new_tokens=1024,
+                early_stopping=False,
+                do_sample=False,
+                num_beams=3,)
+            
+            generated_text = self.processor.batch_decode(generated_ids,
+                                                skip_special_tokens=False)[0]
+            parsed_answer = self.processor.post_process_generation(generated_text,task='<OD>',image_size=(image.width, image.height))
+            # Access bounding boxes and labels
+            od_results = parsed_answer['<OD>']
+            bboxes = od_results['bboxes']
+            labels = od_results['labels']
+        
+            # Plot bounding boxes on the image using the separate function
+            self.plot_bboxes_on_image(image, bboxes, labels)
+        return parsed_answer
+    
+    def train_model(self,train_loader, val_loader, epochs=10, lr=1e-6):
+        optimizer = AdamW(self.model.parameters(), lr=lr)
+        num_training_steps = epochs * len(train_loader)
+        lr_scheduler = get_scheduler(
+            name="linear",
+            optimizer=optimizer,
+            num_warmup_steps=0,
+            num_training_steps=num_training_steps,)
+
+        #florence2_inference_results(peft_model, val_loader.dataset, 3)
+
+        for epoch in range(epochs):
+            self.model.train()
+            train_loss = 0
+            for inputs, answers in tqdm(train_loader, desc=f"Training Epoch {epoch + 1}/{epochs}"):
+
+                input_ids = inputs["input_ids"]
+                pixel_values = inputs["pixel_values"]
+                labels = self.processor.tokenizer(
+                    text=answers,
+                    return_tensors="pt",
+                    padding=True,
+                    return_token_type_ids=False).input_ids.to(self.device)
+
+                outputs = self.model(input_ids=input_ids, pixel_values=pixel_values, labels=labels)
+                loss = outputs.loss
+
+                loss.backward(), optimizer.step(), lr_scheduler.step(), optimizer.zero_grad()
+                train_loss += loss.item()
+
+            avg_train_loss = train_loss / len(train_loader)
+            print(f"Average Training Loss: {avg_train_loss}")
+
+            self.model.eval()
+            val_loss = 0
+            with torch.no_grad():
+                for inputs, answers in tqdm(val_loader, desc=f"Validation Epoch {epoch + 1}/{epochs}"):
+
+                    input_ids = inputs["input_ids"]
+                    pixel_values = inputs["pixel_values"]
+                    labels = self.processor.tokenizer(
+                        text=answers,
+                        return_tensors="pt",
+                        padding=True,
+                        return_token_type_ids=False).input_ids.to(self.device)
+
+                    outputs = self.model(input_ids=input_ids, pixel_values=pixel_values, labels=labels)
+                    loss = outputs.loss
+
+                    val_loss += loss.item()
+
+                avg_val_loss = val_loss / len(val_loader)
+                print(f"Average Validation Loss: {avg_val_loss}")
+
+                self.florence2_inference_results(self.peft_model, val_loader.dataset, 2)
+
+            output_dir = f"./model_checkpoints/epoch_{epoch+1}"
+            os.makedirs(output_dir, exist_ok=True)
+            self.model.save_pretrained(output_dir)
+            self.processor.save_pretrained(output_dir)
 
 class load_florence_dataset:
     """
