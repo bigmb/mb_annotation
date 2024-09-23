@@ -17,10 +17,9 @@ from tqdm import tqdm
 from typing import List, Dict, Any, Tuple, Generator
 from peft import LoraConfig, get_peft_model
 from torch.utils.data import Dataset, DataLoader
-from functools import partial
 import os
 
-__all__ = ["florence_model", "my_collate_fn","load_florence_dataset","dataset_data"]
+__all__ = ["florence_model","load_florence_dataset","dataset_data"]
 
 class florence_model:
     """
@@ -245,16 +244,19 @@ class florence_model:
         """
         self.model = AutoModelForCausalLM.from_pretrained(model_path).to(self.device)
 
-    def load_collate(self):
+    def my_collate_fn(self,batch):
         """
-        Function to load collate
+        Collate function for the dataloader
         Args:
-            None
+            batch (list): List of data
         Returns:
-            partial_collate_fn
+            dict: Dictionary of data
         """
-        partial_collate = partial(my_collate_fn, processor=self.processor)
-        return partial_collate
+        prefix = [item[0] for item in batch]
+        suffix = [item[1] for item in batch]
+        image = [item[2] for item in batch]
+        inputs = self.processor(text=list(prefix), images=list(image), return_tensors="pt", padding=True).to('cpu')
+        return inputs, suffix
     
     def dataloader(self,dataset:Dataset,batch_size:int):
         """
@@ -265,7 +267,7 @@ class florence_model:
         Returns:
             dataloader
         """
-        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=self.load_collate,shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=self.my_collate_fn,shuffle=True)
         return dataloader
 
     def load_lora_data(self):
@@ -476,19 +478,7 @@ class dataset_data(Dataset):
             print(f"Error opening image: {image_path}")
         return prefix, suffix, image
     
-def my_collate_fn(batch,processor):
-    """
-    Collate function for the dataloader
-    Args:
-        batch (list): List of data
-    Returns:
-        dict: Dictionary of data
-    """
-    prefix = [item[0] for item in batch]
-    suffix = [item[1] for item in batch]
-    image = [item[2] for item in batch]
-    inputs = processor(text=list(prefix), images=list(image), return_tensors="pt", padding=True).to('cpu')
-    return inputs, suffix
+
 
 
 
