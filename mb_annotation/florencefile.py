@@ -456,7 +456,6 @@ class load_florence_dataset:
                 final_data = pd.concat([final_data, temp_df],ignore_index=True)
         self.final_csv = final_data
         self.final_csv.to_csv('./final_data_florence.csv',index=False)
-        print(f'final data example : {final_data[0]}')
         print(f'final csv example: {self.final_csv.head(2)}')
             
     def __len__(self):
