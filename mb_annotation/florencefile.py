@@ -374,7 +374,7 @@ class florence_model:
                 avg_val_loss = val_loss / len(val_loader)
                 print(f"Average Validation Loss: {avg_val_loss}")
 
-                self.florence2_inference_results(self.peft_model, val_loader.dataset, 2)
+                self.florence2_inference_results(val_loader, 2)
 
             output_dir = f"./model_checkpoints/epoch_{epoch+1}"
             os.makedirs(output_dir, exist_ok=True)
