@@ -325,6 +325,8 @@ class florence_model:
         return parsed_answer
     
     def train_model(self,train_loader, val_loader, epochs=10, lr=1e-6):
+        for param in self.peft_model.vision_tower.parameters():
+            param.is_trainable = False 
         optimizer = AdamW(self.peft_model.parameters(), lr=lr)
         num_training_steps = epochs * len(train_loader)
         lr_scheduler = get_scheduler(
@@ -382,7 +384,7 @@ class florence_model:
 
             output_dir = f"./model_checkpoints/epoch_{epoch+1}"
             os.makedirs(output_dir, exist_ok=True)
-            self.model.save_pretrained(output_dir)
+            self.peft_model.save_pretrained(output_dir)
             self.processor.save_pretrained(output_dir)
 
 class load_florence_dataset:
