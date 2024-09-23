@@ -265,7 +265,7 @@ class florence_model:
         Returns:
             dataloader
         """
-        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=self.load_collate)
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=self.load_collate,shuffle=True)
         return dataloader
 
     def load_lora_data(self):
@@ -286,10 +286,10 @@ class florence_model:
                             use_rslora=True,
                             init_lora_weights="gaussian",)
 
-        peft_model = get_peft_model(self.model, config)
-        peft_model.print_trainable_parameters()
+        self.peft_model = get_peft_model(self.model, config)
+        self.peft_model.print_trainable_parameters()
 
-        return peft_model
+        return self.peft_model
     
     def florence2_inference_results(self, dataset: Dataset, count: int):
         count = min(count, len(dataset.dataset))
@@ -298,7 +298,7 @@ class florence_model:
             inputs = self.processor(text=prefix, images=image, return_tensors="pt").to(self.device)
         #inputs = processor(text=prompt, images=image, return_tensors="pt")
     
-            generated_ids = self.model.generate(
+            generated_ids = self.peft_model.generate(
                 input_ids=inputs["input_ids"],
                 pixel_values=inputs["pixel_values"],
                 max_new_tokens=1024,
@@ -319,7 +319,7 @@ class florence_model:
         return parsed_answer
     
     def train_model(self,train_loader, val_loader, epochs=10, lr=1e-6):
-        optimizer = AdamW(self.model.parameters(), lr=lr)
+        optimizer = AdamW(self.peft_model.parameters(), lr=lr)
         num_training_steps = epochs * len(train_loader)
         lr_scheduler = get_scheduler(
             name="linear",
@@ -330,7 +330,7 @@ class florence_model:
         #florence2_inference_results(peft_model, val_loader.dataset, 3)
 
         for epoch in range(epochs):
-            self.model.train()
+            self.peft_model.train()
             train_loss = 0
             for inputs, answers in tqdm(train_loader, desc=f"Training Epoch {epoch + 1}/{epochs}"):
 
@@ -342,7 +342,7 @@ class florence_model:
                     padding=True,
                     return_token_type_ids=False).input_ids.to(self.device)
 
-                outputs = self.model(input_ids=input_ids, pixel_values=pixel_values, labels=labels)
+                outputs = self.peft_model(input_ids=input_ids, pixel_values=pixel_values, labels=labels)
                 loss = outputs.loss
 
                 loss.backward(), optimizer.step(), lr_scheduler.step(), optimizer.zero_grad()
@@ -351,7 +351,7 @@ class florence_model:
             avg_train_loss = train_loss / len(train_loader)
             print(f"Average Training Loss: {avg_train_loss}")
 
-            self.model.eval()
+            self.peft_model.eval()
             val_loss = 0
             with torch.no_grad():
                 for inputs, answers in tqdm(val_loader, desc=f"Validation Epoch {epoch + 1}/{epochs}"):
@@ -364,7 +364,7 @@ class florence_model:
                         padding=True,
                         return_token_type_ids=False).input_ids.to(self.device)
 
-                    outputs = self.model(input_ids=input_ids, pixel_values=pixel_values, labels=labels)
+                    outputs = self.peft_model(input_ids=input_ids, pixel_values=pixel_values, labels=labels)
                     loss = outputs.loss
 
                     val_loss += loss.item()
