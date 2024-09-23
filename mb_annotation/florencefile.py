@@ -256,6 +256,18 @@ class florence_model:
         partial_collate = partial(my_collate_fn, processor=self.processor)
         return partial_collate
     
+    def dataloader(self,dataset:Dataset,batch_size:int):
+        """
+        Function to load dataloader
+        Args:
+            dataset (Dataset): Dataset
+            batch_size (int): Batch size
+        Returns:
+            dataloader
+        """
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=self.load_collate)
+        return dataloader
+
     def load_lora_data(self):
         """
         Function to load lora data.
