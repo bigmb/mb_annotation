@@ -16,7 +16,7 @@ from tqdm import tqdm
 from typing import List, Dict, Any, Tuple, Generator
 from peft import LoraConfig, get_peft_model
 from torch.utils.data import Dataset, DataLoader
-import os
+import os,sys
 
 __all__ = ["florence_model","load_florence_dataset","dataset_data"]
 
@@ -81,6 +81,10 @@ class florence_model:
             None
         """
         self.image = Image.open(image_path)
+
+        size = 1000,1000
+        self.image.thumbnail(size, Image.Resampling.LANCZOS)
+
 
     def generate_text(self,prompt:str =None):
         """
@@ -432,6 +436,11 @@ class load_florence_dataset:
             temp_dict={}
             prefix_val = self.df.prefix.iloc[0]
             for i, row in self.df.iterrows():
+                temp_dict['image'] = row['image_path']
+                try:
+                    load_image = Image.open(row['image_path'])
+                except:
+                    print(f'Image not found in path {row["image_path"]}')
                 if isinstance(row['bbox'], str):
                     bbox_list = eval(row['bbox'])
                 else:
@@ -451,9 +460,17 @@ class load_florence_dataset:
                         bbox_list[j] = eval(bbox_list[j])
                     bbox_list[j][2] = bbox_list[j][2]-bbox_list[j][0]
                     bbox_list[j][3] = bbox_list[j][3]-bbox_list[j][1]
-                    temp_str = temp_str+ f"{labels_list[j]}<loc_{int(bbox_list[j][1])}><loc_{int(bbox_list[j][0])}><loc_{int(bbox_list[j][3])}><loc_{int(bbox_list[j][2])}>"
+
+                    load_image_width , load_image_height = load_image.width, load_image.height
+                    bbox_list[j][0] = bbox_list[j][0]/load_image_width
+                    bbox_list[j][1] = bbox_list[j][1]/load_image_height
+                    bbox_list[j][2] = bbox_list[j][2]/load_image_width
+                    bbox_list[j][3] = bbox_list[j][3]/load_image_height
+                    bbox_list = bbox_list*1000
+
+                    temp_str = temp_str+ f"{labels_list[j]}<loc_{int(bbox_list[j][0])}><loc_{int(bbox_list[j][1])}><loc_{int(bbox_list[j][3])}><loc_{int(bbox_list[j][2])}>"
                 self.df.at[i, 'suffix'] = temp_str
-                temp_dict['image'] = row['image_path']
+                
                 temp_dict['prefix'] = prefix_val
                 temp_dict['suffix'] = temp_str
                 temp_df = pd.DataFrame([temp_dict])
