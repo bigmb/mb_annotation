@@ -466,7 +466,7 @@ class load_florence_dataset:
                     bbox_list[j][1] = bbox_list[j][1]/load_image_height
                     bbox_list[j][2] = bbox_list[j][2]/load_image_width
                     bbox_list[j][3] = bbox_list[j][3]/load_image_height
-                    bbox_list = bbox_list*1000
+                    bbox_list = [i*1000 for i in bbox_list]
 
                     temp_str = temp_str+ f"{labels_list[j]}<loc_{int(bbox_list[j][0])}><loc_{int(bbox_list[j][1])}><loc_{int(bbox_list[j][3])}><loc_{int(bbox_list[j][2])}>"
                 self.df.at[i, 'suffix'] = temp_str
@@ -499,6 +499,8 @@ class dataset_data(Dataset):
         suffix = self.df.iloc[idx]['suffix']
         try:
             image = Image.open(image_path)
+            size = 1000,1000
+            image.thumbnail(size, Image.ANTIALIAS)
         except:
             print(f"Error opening image: {image_path}")
         return prefix, suffix, image
