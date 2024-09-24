@@ -10,7 +10,7 @@ from sam2.build_sam import build_sam2_video_predictor
 from os import listdir
 from os.path import isfile, join
 from sam2.sam2_image_predictor import SAM2ImagePredictor
-
+import pandas as pd
 
 __all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor",
            "show_masks_image","show_box","show_points","image_predictor"]
@@ -406,8 +406,49 @@ class image_predictor:
 
         return masks, scores, logits
     
+def load_data(file):
+    """
+    Load the csv file with the data
+    Args:
+        file (str): path to the csv file
+    Returns:
+        data (list): [image, np.array(masks), np.array(points),1]
+    """    
+    t1= pd.read_csv(file)
+    assert 'image_path' in t1.columns
+    assert 'mask_path' in t1.columns
+    t1_image= list(t1['image_path'])
+    t1_masks= list(t1['mask_path'])
+    data = {}
+    for i in range(len(t1_image)):
+        data[i]={"image":t1_image[i],"annotation":t1_masks[i]}
+
     
-    
+
+def read_batch(data): 
+
+    ent  = data[np.random.randint(len(data))] 
+    Img = cv2.imread(ent["image"])[...,::-1]  
+    ann_map = cv2.imread(ent["annotation"]) 
+
+    r = np.min([1024 / Img.shape[1], 1024 / Img.shape[0]]) # scalling factor
+    Img = cv2.resize(Img, (int(Img.shape[1] * r), int(Img.shape[0] * r)))
+    ann_map = cv2.resize(ann_map, (int(ann_map.shape[1] * r), int(ann_map.shape[0] * r)),interpolation=cv2.INTER_NEAREST)
+
+    mat_map = ann_map[:,:,0] 
+    ves_map = ann_map[:,:,2] 
+    mat_map[mat_map==0] = ves_map[mat_map==0]*(mat_map.max()+1) 
+
+    inds = np.unique(mat_map)[1:] # load all indices
+    points= []
+    masks = []
+    for ind in inds:
+        mask=(mat_map == ind).astype(np.uint8) # make binary mask
+        masks.append(mask)
+        coords = np.argwhere(mask > 0) # get all coordinates in mask
+        yx = np.array(coords[np.random.randint(len(coords))]) # choose random point/coordinate
+        points.append([[yx[1], yx[0]]])
+    return Img,np.array(masks),np.array(points), np.ones([len(masks),1])
 
 
 
