@@ -518,8 +518,8 @@ def train_model(data, predictor, epochs=10, lr=1e-6,device='cpu'):
             prd_masks = predictor._transforms.postprocess_masks(low_res_masks, predictor._orig_hw[-1])# Upscale the masks to the original image resolution
 
             # Segmentaion Loss caclulation
-
-            gt_mask = torch.tensor(mask.astype(np.float32)).cuda()
+            
+            gt_mask = torch.tensor(mask.astype(np.float32)).to(device)
             prd_mask = torch.sigmoid(prd_masks[:, 0])
             seg_loss = (-gt_mask * torch.log(prd_mask + 0.00001) - (1 - gt_mask) * torch.log((1 - prd_mask) + 0.00001)).mean()
 
