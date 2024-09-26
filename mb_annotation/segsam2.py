@@ -15,6 +15,8 @@ import torch
 from torch.amp import autocast, GradScaler
 import os
 
+import torch.amp
+
 __all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor",
            "show_masks_image","show_box","show_points","image_predictor","load_data","read_batch","sam_predictor","train_model"]
 
@@ -495,10 +497,10 @@ def train_model(data, predictor, epochs=10, lr=1e-6,device='cpu'):
     optimizer=torch.optim.AdamW(params=predictor.model.parameters(),lr=lr,weight_decay=4e-5)
     scaler = GradScaler() # set mixed precision
     
-    os.mkdirs("sam_model_checkpoints",exist_ok=True)
+    os.makedirs("sam_model_checkpoints",exist_ok=True)
 
     for itr in range(epochs):
-        with autocast().device(device): # cast to mix precision
+        with torch.amp.autocast(device_type=device): # cast to mix precision
             image,mask,input_point, input_label = read_batch(data) # load data batch
             if mask.shape[0]==0: continue # ignore empty batches
             predictor.set_image(image) # apply SAM image encodet to the image
