@@ -80,6 +80,7 @@ logs/
 logger.log.1
 logger.log.2
 test_pp_images.ipynb
+testing.ipynb
 
 # Sphinx documentation
 docs/_build/

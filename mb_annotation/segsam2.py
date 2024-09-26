@@ -13,7 +13,7 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 import pandas as pd
 
 __all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor",
-           "show_masks_image","show_box","show_points","image_predictor"]
+           "show_masks_image","show_box","show_points","image_predictor","load_data","read_batch"]
 
 def show_anns(anns, borders=True, show=True):
     """
@@ -422,10 +422,19 @@ def load_data(file):
     data = {}
     for i in range(len(t1_image)):
         data[i]={"image":t1_image[i],"annotation":t1_masks[i]}
+    return data
 
-    
 
 def read_batch(data): 
+    """
+    Reads a batch of data from the dataloader
+    Args:
+        data (list): List of data
+    Returns:
+        Img (np.array): Image
+        masks (np.array): Masks
+        points (np.array): Points
+    """
 
     ent  = data[np.random.randint(len(data))] 
     Img = cv2.imread(ent["image"])[...,::-1]  
