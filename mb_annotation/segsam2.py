@@ -11,9 +11,11 @@ from os import listdir
 from os.path import isfile, join
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 import pandas as pd
+import torch
+from torch.amp import autocast, GradScaler
 
 __all__ = ["show_anns","get_mask_generator","get_mask_for_bbox","get_all_masks","video_predictor",
-           "show_masks_image","show_box","show_points","image_predictor","load_data","read_batch"]
+           "show_masks_image","show_box","show_points","image_predictor","load_data","read_batch","sam_predictor","train_model"]
 
 def show_anns(anns, borders=True, show=True):
     """
@@ -406,6 +408,21 @@ class image_predictor:
 
         return masks, scores, logits
     
+def sam_predictor(sam_chpt,sam_yaml,device='cpu'):
+    """
+    Fetching SAM predictor
+    Args:
+        sam_chpt : path to sam checkpoint
+        sam_yaml : path to sam yaml file
+        device : default - 'cpu'
+    Returns:
+        SAM Predictor
+    """
+
+    sam2_model = build_sam2(sam_yaml, sam_chpt, device=device) # load model
+    predictor = SAM2ImagePredictor(sam2_model) # load net
+    return predictor
+
 def load_data(file):
     """
     Load the csv file with the data
@@ -459,5 +476,66 @@ def read_batch(data):
         points.append([[yx[1], yx[0]]])
     return Img,np.array(masks),np.array(points), np.ones([len(masks),1])
 
+def train_model(data, predictor, epochs=10, lr=1e-6):
+    """
+    Trains the model
+    Args:
+        train_loader (DataLoader): Train loader
+        val_loader (DataLoader): Validation loader
+        epochs (int, optional): Number of epochs. Defaults to 10.
+        lr (float, optional): Learning rate. Defaults to 1e-6.
+    Returns:
+        moedel
+    """
 
+    predictor.model.sam_mask_decoder.train(True) # enable training of mask decoder
+    predictor.model.sam_prompt_encoder.train(True) # enable training of prompt encoder
+    
+    optimizer=torch.optim.AdamW(params=predictor.model.parameters(),lr=1e-5,weight_decay=4e-5)
+    scaler = GradScaler() # set mixed precision
+    
+    for itr in range(epochs):
+        with autocast(): # cast to mix precision
+            image,mask,input_point, input_label = read_batch(data) # load data batch
+            if mask.shape[0]==0: continue # ignore empty batches
+            predictor.set_image(image) # apply SAM image encodet to the image
 
+            # prompt encoding
+
+            mask_input, unnorm_coords, labels, unnorm_box = predictor._prep_prompts(input_point, input_label, box=None, mask_logits=None, normalize_coords=True)
+            sparse_embeddings, dense_embeddings = predictor.model.sam_prompt_encoder(points=(unnorm_coords, labels),boxes=None,masks=None,)
+
+            # mask decoder
+
+            batched_mode = unnorm_coords.shape[0] > 1 # multi object prediction
+            high_res_features = [feat_level[-1].unsqueeze(0) for feat_level in predictor._features["high_res_feats"]]
+            low_res_masks, prd_scores, _, _ = predictor.model.sam_mask_decoder(image_embeddings=predictor._features["image_embed"][-1].unsqueeze(0),image_pe=predictor.model.sam_prompt_encoder.get_dense_pe(),sparse_prompt_embeddings=sparse_embeddings,dense_prompt_embeddings=dense_embeddings,multimask_output=True,repeat_image=batched_mode,high_res_features=high_res_features,)
+            prd_masks = predictor._transforms.postprocess_masks(low_res_masks, predictor._orig_hw[-1])# Upscale the masks to the original image resolution
+
+            # Segmentaion Loss caclulation
+
+            gt_mask = torch.tensor(mask.astype(np.float32)).cuda()
+            prd_mask = torch.sigmoid(prd_masks[:, 0])
+            seg_loss = (-gt_mask * torch.log(prd_mask + 0.00001) - (1 - gt_mask) * torch.log((1 - prd_mask) + 0.00001)).mean()
+
+            # Score loss calculation (intersection over union) IOU
+
+            inter = (gt_mask * (prd_mask > 0.5)).sum(1).sum(1)
+            iou = inter / (gt_mask.sum(1).sum(1) + (prd_mask > 0.5).sum(1).sum(1) - inter)
+            score_loss = torch.abs(prd_scores[:, 0] - iou).mean()
+            loss=seg_loss+score_loss*0.05  # mix losses
+
+            # apply back propogation
+
+            predictor.model.zero_grad() # empty gradient
+            scaler.scale(loss).backward()  # Backpropogate
+            scaler.step(optimizer)
+            scaler.update() # Mix precision
+
+            if itr%1000==0: torch.save(predictor.model.state_dict(), "model.torch") # save model
+
+            # Display results
+
+            if itr==0: mean_iou=0
+            mean_iou = mean_iou * 0.99 + 0.01 * np.mean(iou.cpu().detach().numpy())
+            print("step:{} loss:{:.4f} seg_loss:{:.4f} score_loss:{:.4f} mean_iou:{:.4f}".format(itr,loss.item(),seg_loss.item(),score_loss.item(),mean_iou))
