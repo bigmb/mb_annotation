@@ -479,7 +479,7 @@ def read_batch(data):
         points.append([[yx[1], yx[0]]])
     return Img,np.array(masks),np.array(points), np.ones([len(masks),1])
 
-def train_model(data, predictor, epochs=10, lr=1e-6,device='cpu'):
+def train_model(data, predictor, epochs=10, lr=1e-6,device='cpu',save_step=10):
     """
     Trains the model
     Args:
@@ -488,7 +488,7 @@ def train_model(data, predictor, epochs=10, lr=1e-6,device='cpu'):
         epochs (int, optional): Number of epochs. Defaults to 10.
         lr (float, optional): Learning rate. Defaults to 1e-6.
     Returns:
-        moedel
+        SAM2 Predictor
     """
 
     predictor.model.sam_mask_decoder.train(True) # enable training of mask decoder
@@ -538,10 +538,11 @@ def train_model(data, predictor, epochs=10, lr=1e-6,device='cpu'):
             scaler.update() # Mix precision
 
 
-            if itr%1000==0: torch.save(predictor.model.state_dict(), "./sam_model_checkpoints/sam_model.pt") # save model
+            if itr%save_step==0: torch.save(predictor.model.state_dict(), "./sam_model_checkpoints/sam_model.pt") # save model
 
             # Display results
 
             if itr==0: mean_iou=0
             mean_iou = mean_iou * 0.99 + 0.01 * np.mean(iou.cpu().detach().numpy())
             print("step:{} loss:{:.4f} seg_loss:{:.4f} score_loss:{:.4f} mean_iou:{:.4f}".format(itr,loss.item(),seg_loss.item(),score_loss.item(),mean_iou))
+    return predictor

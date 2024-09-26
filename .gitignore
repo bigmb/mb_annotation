@@ -66,6 +66,7 @@ db.sqlite3-journal
 # *.ipynb
 model_checkpoints
 florence_model_cache
+sam_model_checkpoints
 
 # Flask stuff:
 instance/
