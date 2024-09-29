@@ -68,8 +68,9 @@ class molmo_model:
             self.plot_points(res)
         return res_image
 
-    def plot_points(self,points,thickness=-1,color=(0, 0, 255)):
+    def plot_points(self,points,radius =10, thickness=-10,color=(0, 0, 255)):
+        image_point = np.array(self.image)
         for x,y in points:
-            image_point = cv2.circle(self.image, (x,y), radius=0, color=color, thickness=thickness)
+            image_point = cv2.circle(image_point, (int(x),int(y)), radius=10, color=color, thickness=thickness)
         plt.imshow(image_point)
 
