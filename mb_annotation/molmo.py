@@ -32,7 +32,7 @@ class molmo_model:
             self.processor = processor
         else:
             self.processor = AutoProcessor.from_pretrained(model_name,trust_remote_code=True,
-                                                              torch_dtype='auto',device_map=self.device).to(self.device)
+                                                              torch_dtype='auto',device_map=self.device)
             
     def run_inference(self,image,text):
         """
