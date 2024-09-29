@@ -45,7 +45,7 @@ class molmo_model:
         """
         if isinstance(image,str):
             self.image = Image.open(image)
-        inputs = self.processor.process(images=[image],text=text)
+        inputs = self.processor.process(images=[self.image],text=text)
 
         inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
 
