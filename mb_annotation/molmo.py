@@ -23,10 +23,10 @@ class molmo_model:
         self.model_path = model_path
         if model_path:
             self.model = AutoModelForCausalLM.from_pretrained(model_path,trust_remote_code=True,
-                                                              torch_dtype='auto',device_map=self.device).to(self.device)
+                                                              torch_dtype='auto',device_map=self.device)
         else:
             self.model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True,
-                                                              torch_dtype='auto',device_map=self.device).to(self.device)
+                                                              torch_dtype='auto',device_map=self.device)
 
         if processor:
             self.processor = processor
@@ -73,4 +73,3 @@ class molmo_model:
             image_point = cv2.circle(self.image, (x,y), radius=0, color=color, thickness=thickness)
         plt.imshow(image_point)
 
-    
