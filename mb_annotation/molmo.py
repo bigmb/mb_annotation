@@ -61,14 +61,15 @@ class molmo_model:
         coordinates = [(float(x), float(y)) for _, x, _, y in matches]
         return np.array(coordinates)
     
-    def final_coordinates(self,text,plot=True):
+    def final_coordinates(self,text,plot=True,**kwargs):
         res = self.extract_points(text)
-        res_image = res * np.array(self.image.size) / 100
+        res_updated = res * np.array(self.image.size) / 100
         if plot:
-            self.plot_points(res)
-        return res_image
+            self.plot_points(res_updated,**kwargs)
+        return res_updated
 
     def plot_points(self,points,radius =10, thickness=-10,color=(0, 0, 255)):
+        
         image_point = np.array(self.image)
         for x,y in points:
             image_point = cv2.circle(image_point, (int(x),int(y)), radius=10, color=color, thickness=thickness)
