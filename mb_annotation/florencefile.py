@@ -1,4 +1,14 @@
-## file for florence functions
+"""
+Florence Module
+
+This module provides integration with Microsoft's Florence model for advanced image understanding
+and processing. It includes functionality for model initialization, training, and inference.
+
+Classes:
+    florence_model: Main class for interacting with the Florence model
+    load_florence_dataset: Class for loading and preprocessing Florence datasets
+    dataset_data: Dataset class for Florence model training
+"""
 
 import torch
 from PIL import Image, ImageDraw
@@ -22,16 +32,15 @@ __all__ = ["florence_model","load_florence_dataset","dataset_data"]
 
 class florence_model:
     """
-    Class for florence model
+    Florence model wrapper for image understanding and processing.
+
     Args:
-        model_name (str): Name of the model
-        device (str, optional): Device on which to run the model. Defaults to 'cpu'.
-    Returns:
-        None
+        model_name (str): Name or path of the Florence model
+        finetuned_model (bool): Whether to load a finetuned model
+        device (str): Device to run the model on ('cpu' or 'cuda')
     """
 
     def __init__(self,model_name="microsoft/Florence-2-base",finetuned_model=False,device='cpu') -> None:
-
         if device == 'cpu':
             device = "cpu"
         elif device == 'cuda':
@@ -50,49 +59,46 @@ class florence_model:
 
     def get_task_types(self):
         """
-        Function to get task types
-        Args:
-            None
+        Get available task types for the Florence model.
+
         Returns:
-            task_type (dict): List of task types
+            dict: Dictionary of available task types and their prompts
         """
-        task_list =  {'captions':['<CAPTION>','<DETAILED_CAPTION>','<MORE_DETAILED_CAPTION>'],'character_recognition':['<OCR>','<OCR_WITH_REGION>'],
-                      'object_detection':['<OD>','<REGION_PROPOSAL>','<DENSE_REGION_PROPOSAL>'],'segmentation':['<REGION_TO_SEGMENTATION>'],
+        task_list =  {'captions':['<CAPTION>','<DETAILED_CAPTION>','<MORE_DETAILED_CAPTION>'],
+                      'character_recognition':['<OCR>','<OCR_WITH_REGION>'],
+                      'object_detection':['<OD>','<REGION_PROPOSAL>','<DENSE_REGION_PROPOSAL>'],
+                      'segmentation':['<REGION_TO_SEGMENTATION>'],
                       'description':['<REGION_TO_CATOGORY>','<REGION_TO_DESCRIPTION>'],
                       'extra':['<PHRASE_GROUNDING>','<OPEN_VOCABULARY_DETECTION>','<REFERRING_EXPRESSION_SEGMENTATION>']}
         return task_list
     
     def define_task(self,task_type:list = ['<OD>','CAPTION']):
         """
-        Function to define task
+        Define the task type for the model.
+
         Args:
-            task_type (list): List of task types
-        Returns:
-            None
+            task_type (list): List of task types to use
         """
         self.task_type = task_type
 
     def set_image(self,image_path:str):
         """
-        Function to set image
+        Set the image for processing.
+
         Args:
-            image_path (str): Image path
-        Returns:
-            None
+            image_path (str): Path to the image file
         """
         self.image = Image.open(image_path)
 
-        # size = 1000,1000
-        # self.image.thumbnail(size, Image.Resampling.LANCZOS)
-
-
     def generate_text(self,prompt:str =None):
         """
-        Function to generate text
+        Generate text based on the image and prompt.
+
         Args:
-            prompt (str): Prompt
+            prompt (str): Optional prompt to guide text generation
+
         Returns:
-            res (str): Result
+            list: List of generated results
         """
         final_ans = []
         for i in self.task_type:
@@ -112,12 +118,13 @@ class florence_model:
     
     def plot_box(self,data,image=None,show=True,save_path=None):
         """
-        Plot BBox on image
+        Plot bounding boxes on an image.
+
         Args:
-            data (dict): BBox data
-            image (PIL Image): Image
-        Returns:
-            fig (matplotlib figure): Figure
+            data (dict): Dictionary containing bounding boxes and labels
+            image (PIL.Image, optional): Image to plot on
+            show (bool): Whether to display the plot
+            save_path (str, optional): Path to save the plot
         """
         fig, ax = plt.subplots(figsize=(12, 8))
         if image is None:
@@ -148,6 +155,14 @@ class florence_model:
             fig.savefig(save_path)
 
     def plot_bboxes_on_image(self,image, bboxes, labels):
+        """
+        Plot multiple bounding boxes on an image.
+
+        Args:
+            image (PIL.Image): Image to plot on
+            bboxes (list): List of bounding box coordinates
+            labels (list): List of labels for each box
+        """
         plt.figure(figsize=(10, 8))
         plt.imshow(image)
 
@@ -162,13 +177,19 @@ class florence_model:
         plt.axis('off')
         plt.show()
 
-    def draw_polygons(self, prediction,image=None, fill_mask=False,show=True,save_path=None):
+    def draw_polygons(self, prediction, image=None, fill_mask=False, show=True, save_path=None):
         """
-        Draws segmentation masks with polygons on an image.
+        Draw segmentation masks with polygons on an image.
+
         Args:
-            image (PIL Image): The image to draw on.
-            prediction (dict): The prediction containing polygons and labels.
-            fill_mask (bool): Whether to fill the polygons with color.
+            prediction (dict): Dictionary containing polygons and labels
+            image (PIL.Image, optional): Image to draw on
+            fill_mask (bool): Whether to fill the polygons
+            show (bool): Whether to display the result
+            save_path (str, optional): Path to save the result
+        
+        Returns:
+            PIL.Image: Image with drawn polygons
         """
         if image is None:
             image = self.image
@@ -200,28 +221,31 @@ class florence_model:
 
     def convert_to_od_format(self,data):
         """
-        Convert data to od format
+        Convert data to object detection format.
+
         Args:
-            data (dict): Data
+            data (dict): Input data dictionary
+
         Returns:
-            od_results (dict): od results
+            dict: Converted data in object detection format
         """
         bboxes = data.get('bboxes', [])
         labels = data.get('bboxes_labels', [])
         od_results = {'bboxes': bboxes, 'labels': labels}
-
         return od_results
     
     def draw_ocr_bbox(self,data,image=None,show=True,save_path=None):
         """
-        Draw OCR BBox
+        Draw OCR bounding boxes on an image.
+
         Args:
-            data (dict): Data
-            image (PIL Image): Image
-            show (bool): Show
-            save_path (str): Save path
+            data (dict): Dictionary containing OCR bounding boxes and labels
+            image (PIL.Image, optional): Image to draw on
+            show (bool): Whether to display the result
+            save_path (str, optional): Path to save the result
+
         Returns:
-            fig (matplotlib figure): Figure
+            PIL.Image: Image with drawn OCR boxes
         """
         scale = 1
         if image is None:
@@ -241,24 +265,25 @@ class florence_model:
         if save_path is not None:
             image.save(save_path)
         return image
-    
+
     def load_model(self,model_path:str):
         """
-        Function to load model
+        Load a pretrained model from path.
+
         Args:
-            model_path (str): Model path
-        Returns:
-            None
+            model_path (str): Path to the model
         """
         self.model = AutoModelForCausalLM.from_pretrained(model_path).to(self.device)
 
     def my_collate_fn(self,batch):
         """
-        Collate function for the dataloader
+        Collate function for the dataloader.
+
         Args:
-            batch (list): List of data
+            batch (list): List of data items
+
         Returns:
-            dict: Dictionary of data
+            tuple: Processed batch data
         """
         prefix = [item[0] for item in batch]
         suffix = [item[1] for item in batch]
@@ -268,24 +293,24 @@ class florence_model:
     
     def dataloader(self,dataset:Dataset,batch_size:int):
         """
-        Function to load dataloader
+        Create a DataLoader for the dataset.
+
         Args:
-            dataset (Dataset): Dataset
+            dataset (Dataset): Input dataset
             batch_size (int): Batch size
+
         Returns:
-            dataloader
+            DataLoader: DataLoader instance
         """
         dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=self.my_collate_fn,shuffle=True)
         return dataloader
 
     def load_lora_data(self):
         """
-        Function to load lora data.
-        Default param set. Can be changed as per requirement. Currently hard coded
-        Args:
-            None
+        Load LoRA configuration for model fine-tuning.
+
         Returns:
-            peft_model
+            PeftModel: Model with LoRA configuration
         """
         config = LoraConfig(r=8,lora_alpha=8,
                             target_modules=["q_proj", "o_proj", "k_proj", "v_proj", "linear", "Conv2d", "lm_head", "fc2"],
@@ -300,14 +325,23 @@ class florence_model:
         self.peft_model.print_trainable_parameters()
 
         return self.peft_model
-    
+
     def florence2_inference_results(self, dataset: Dataset, count: int):
+        """
+        Run inference on a dataset using Florence 2 model.
+
+        Args:
+            dataset (Dataset): Input dataset
+            count (int): Number of samples to process
+
+        Returns:
+            dict: Parsed model predictions
+        """
         count = min(count, len(dataset.dataset))
         for i in range(count):
             prefix,suffix, image = dataset.dataset[i]
             inputs = self.processor(text=prefix, images=image, return_tensors="pt").to(self.device)
-        #inputs = processor(text=prompt, images=image, return_tensors="pt")
-    
+        
             generated_ids = self.peft_model.generate(
                 input_ids=inputs["input_ids"],
                 pixel_values=inputs["pixel_values"],
@@ -329,6 +363,15 @@ class florence_model:
         return parsed_answer
     
     def train_model(self,train_loader, val_loader, epochs=10, lr=1e-6):
+        """
+        Train the Florence model.
+
+        Args:
+            train_loader (DataLoader): Training data loader
+            val_loader (DataLoader): Validation data loader
+            epochs (int): Number of training epochs
+            lr (float): Learning rate
+        """
         for param in self.peft_model.vision_tower.parameters():
             param.is_trainable = False 
         optimizer = AdamW(self.peft_model.parameters(), lr=lr)
@@ -338,8 +381,6 @@ class florence_model:
             optimizer=optimizer,
             num_warmup_steps=0,
             num_training_steps=num_training_steps,)
-
-        #florence2_inference_results(peft_model, val_loader.dataset, 3)
 
         for epoch in range(epochs):
             self.peft_model.train()
@@ -393,7 +434,7 @@ class florence_model:
 
 class load_florence_dataset:
     """
-    Requires csv file path.
+    Class for loading and preprocessing Florence datasets.
     CSV file should have:
         image path (image_path) ,
         boundingbox or suffix (bbox in the format [xmin, ymin, xmax, ymax] -should be in order of labels.) -list[list], 
@@ -403,9 +444,7 @@ class load_florence_dataset:
         
     Check the test file for more details. (./test_data/florence_test.csv)   
     Args:
-        csv_file_path (str): Path to the csv file
-    Returns:
-        None
+        csv_file_path (str): Path to the CSV file containing dataset information
     """
 
     def __init__(self,csv_file_path) -> None:
@@ -486,6 +525,13 @@ class load_florence_dataset:
         return self.final_csv.iloc[idx]
 
 class dataset_data(Dataset):
+    """
+    Dataset class for Florence model training.
+
+    Args:
+        df (pandas.DataFrame): DataFrame containing dataset information
+    """
+
     def __init__(self,df) -> None:
         self.df = df
     
@@ -493,33 +539,12 @@ class dataset_data(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx):
-        # row_data = self.final_csv[self.final_csv.index==idx] ## check how to seperate train/val before goin to this step
+        ## add step to see if anything can be done for seperating train/val data process
         image_path = self.df.iloc[idx]['image_path']
         prefix = self.df.iloc[idx]['prefix']
         suffix = self.df.iloc[idx]['suffix']
         try:
             image = Image.open(image_path)
-            # size = 1000,1000
-            # image.thumbnail(size, Image.ANTIALIAS)
         except:
             print(f"Error opening image: {image_path}")
         return prefix, suffix, image
-    
-
-
-
-
-# def collate_fn(batch):
-#     """
-#     Collate function for the dataloader
-#     Args:
-#         batch (list): List of data
-#     Returns:
-#         dict: Dictionary of data
-#     """
-#     prefix = [item[0] for item in batch]
-#     suffix = [item[1] for item in batch]
-#     image = [item[2] for item in batch]
-#     inputs = processor(text=list(prefix), images=list(image), return_tensors="pt", padding=True).to('cpu')
-#     return inputs, suffix
-
