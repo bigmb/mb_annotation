@@ -1,10 +1,9 @@
-# MB Annotation
+# MB LLM
 
-MB Annotation is a Python package that provides tools for image and video annotation, segmentation, and object detection. It integrates several powerful models and techniques including SAM2 (Segment Anything 2), Florence, and Molmo.
+MB LLM is a Python package that provides tools for image and video annotation, segmentation, object detection and Fine tuning models. It integrates several powerful models and techniques including SAM2 (Segment Anything 2), Florence, and Molmo.
 
 ## Features
 
-- **Bounding Box Detection**: Generate and manipulate bounding boxes using Google's Generative AI
 - **Florence Integration**: Advanced image understanding and processing capabilities
 - **Molmo Support**: Specialized molecular and material analysis features
 - **SAM2 Integration**: State-of-the-art segmentation capabilities including:
@@ -16,7 +15,7 @@ MB Annotation is a Python package that provides tools for image and video annota
 ## Installation
 
 ```bash
-pip install mb_annotation
+pip install mb_llm
 ```
 
 ## Environment Setup
@@ -26,7 +25,7 @@ pip install mb_annotation
 3. Load environment variables using the provided utility:
 
 ```python
-from mb_annotation.utils import load_env_file
+from mb_llm.utils import load_env_file
 env_vars = load_env_file()
 ```
 
@@ -35,7 +34,7 @@ env_vars = load_env_file()
 ### Bounding Box Detection
 
 ```python
-from mb_annotation.bounding_box import google_model, generate_bounding_box, add_bounding_box
+from mb_llm.bounding_box import google_model, generate_bounding_box, add_bounding_box
 
 # Initialize model
 model = google_model(api_key="your_api_key")
@@ -50,7 +49,7 @@ image, box = add_bounding_box("path/to/image.jpg", bounding_box, "label")
 ### Florence Model Usage
 
 ```python
-from mb_annotation.florencefile import florence_model
+from mb_llm.florencefile import florence_model
 
 # Initialize model
 model = florence_model(model_name="microsoft/Florence-2-base")
@@ -63,7 +62,7 @@ result = model.generate_text(prompt="Describe this image")
 ### Molmo Model Usage
 
 ```python
-from mb_annotation.molmo import molmo_model
+from mb_llm.molmo import molmo_model
 
 # Initialize model
 model = molmo_model(model_name="allenai/Molmo-7B-D-0924")
@@ -75,7 +74,7 @@ result = model.run_inference("path/to/image.jpg", "text prompt")
 ### SAM2 Segmentation
 
 ```python
-from mb_annotation.segsam2 import get_mask_generator, image_predictor
+from mb_llm.segsam2 import get_mask_generator, image_predictor
 
 # Get mask generator
 mask_generator = get_mask_generator(sam2_checkpoint="path/to/checkpoint.pt")
@@ -89,7 +88,7 @@ masks, scores, logits = predictor.predict_item(bbox=[x0, y0, x1, y1])
 ### Video Processing
 
 ```python
-from mb_annotation.utils import video_to_images
+from mb_llm.utils import video_to_images
 
 # Convert video to image frames
 image_list = video_to_images(
@@ -102,7 +101,6 @@ image_list = video_to_images(
 
 ## Module Overview
 
-- `bounding_box.py`: Functions for generating and manipulating bounding boxes
 - `florencefile.py`: Integration with Florence model for image understanding
 - `molmo.py`: Specialized functions for molecular and material analysis
 - `segsam2.py`: SAM2 integration for advanced segmentation tasks
