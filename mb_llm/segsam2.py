@@ -174,6 +174,7 @@ class SAM2Processor:
                   marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
         ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red',
                   marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
+        
 
     def show_box(self, box: Union[List, np.ndarray], ax: plt.Axes) -> None:
         """Display a bounding box on an axis."""
@@ -252,20 +253,24 @@ class VideoPredictor:
         plt.close("all")
         for out_frame_idx in range(0, len(self.frame_names), vis_frame_stride):
             plt.figure(figsize=(6, 4))
+            ax = plt.gca()
             plt.title(f"frame {out_frame_idx}")
-            plt.imshow(Image.open(self.joined_frame_names[out_frame_idx]))
+            img = Image.open(self.joined_frame_names[out_frame_idx])
+            ax.imshow(img)
             for out_obj_id, out_mask in video_segments[out_frame_idx].items():
-                SAM2Processor.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+                SAM2Processor.show_mask(out_mask, ax, obj_id=out_obj_id)
     
     def _visualize_prediction(self, image_loc: Optional[str], points: Optional[np.ndarray],
                               labels: Optional[np.ndarray], prompts: Dict[int, Tuple[np.ndarray, np.ndarray]], 
                               out_mask_logits: np.ndarray) -> None:
         """Visualize the prediction."""
         plt.figure(figsize=(10, 10))
-        plt.imshow(Image.open(image_loc))
-        SAM2Processor.show_points(points, labels, plt.gca())
+        ax = plt.gca()  # Get current axis
+        img = Image.open(image_loc)
+        ax.imshow(Image.open(img))
+        SAM2Processor.show_points(points, labels, ax)
         for obj_id, (points, labels) in prompts.items():
-            SAM2Processor.show_mask((out_mask_logits[obj_id] > 0.0).cpu().numpy(), plt.gca(), obj_id=obj_id)
+            SAM2Processor.show_mask((out_mask_logits[obj_id] > 0.0).cpu().numpy(), ax, obj_id=obj_id)
         
 
 class ImagePredictor:
