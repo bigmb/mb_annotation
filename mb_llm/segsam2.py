@@ -146,7 +146,8 @@ class SAM2Processor:
         mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
         ax.imshow(mask_image)
 
-    def show_masks_image(self, image: np.ndarray, masks: List[np.ndarray],
+    @staticmethod
+    def show_masks_image( image: np.ndarray, masks: List[np.ndarray],
                         scores: List[float], point_coords: Optional[np.ndarray] = None,
                         box_coords: Optional[np.ndarray] = None,
                         input_labels: Optional[np.ndarray] = None,
@@ -155,12 +156,12 @@ class SAM2Processor:
         for i, (mask, score) in enumerate(zip(masks, scores)):
             plt.figure(figsize=(10, 10))
             plt.imshow(image)
-            self.show_mask_image(mask, plt.gca(), borders=borders)
+            SAM2Processor.show_mask_image(mask, plt.gca(), borders=borders)
             if point_coords is not None:
                 assert input_labels is not None
-                self.show_points(point_coords, input_labels, plt.gca())
+                SAM2Processor.show_points(point_coords, input_labels, plt.gca())
             if box_coords is not None:
-                self.show_box(box_coords, plt.gca())
+                SAM2Processor.show_box(box_coords, plt.gca())
             if len(scores) > 1:
                 plt.title(f"Mask {i+1}, Score: {score:.3f}", fontsize=18)
             plt.axis('off')
