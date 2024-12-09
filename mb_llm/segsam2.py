@@ -237,8 +237,8 @@ class VideoPredictor:
             **kwargs)
 
         if show:
-            self._visualize_prediction(image_loc, frame_idx, points, labels,
-                                     prompts, out_obj_ids, out_mask_logits)
+            self._visualize_prediction(image_loc, points, labels,
+                                     prompts, out_mask_logits)
 
     def predict_video(self, vis_frame_stride: int = 30) -> None:
         """Process all frames in the video."""
@@ -256,6 +256,17 @@ class VideoPredictor:
             plt.imshow(Image.open(self.joined_frame_names[out_frame_idx]))
             for out_obj_id, out_mask in video_segments[out_frame_idx].items():
                 SAM2Processor.show_mask(out_mask, plt.gca(), obj_id=out_obj_id)
+    
+    def _visualize_prediction(self, image_loc: Optional[str], points: Optional[np.ndarray],
+                              labels: Optional[np.ndarray], prompts: Dict[int, Tuple[np.ndarray, np.ndarray]], 
+                              out_mask_logits: np.ndarray) -> None:
+        """Visualize the prediction."""
+        plt.figure(figsize=(10, 10))
+        plt.imshow(Image.open(image_loc))
+        SAM2Processor.show_points(points, labels, plt.gca())
+        for obj_id, (points, labels) in prompts.items():
+            SAM2Processor.show_mask((out_mask_logits[obj_id] > 0.0).cpu().numpy(), plt.gca(), obj_id=obj_id)
+        
 
 class ImagePredictor:
     """Class for image prediction using SAM2."""
@@ -306,6 +317,14 @@ class ImagePredictor:
             self._visualize_prediction(masks, scores, points, bbox, labels)
 
         return masks, scores, logits
+    
+    def _visualize_prediction(self, masks: np.ndarray, scores: np.ndarray,points: Optional[np.ndarray] = None,
+                            bbox: Optional[np.ndarray] = None, labels: Optional[np.ndarray] = None) -> None:
+        """Visualize the prediction."""
+        plt.figure(figsize=(10, 10))
+        plt.imshow(self.image)
+        SAM2Processor.show_masks_image(self.image, masks, scores, point_coords=points,
+                                     box_coords=bbox, input_labels=labels)
 
 class DataProcessor:
     """Class for handling data loading and processing."""
