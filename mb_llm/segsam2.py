@@ -186,6 +186,7 @@ class SAM2Processor:
         ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor='green',
                                  facecolor=(0, 0, 0, 0), lw=2))
 
+
 class VideoPredictor:
     """Class for video prediction using SAM2."""
 
@@ -273,6 +274,8 @@ class VideoPredictor:
         ax.imshow(img)
         SAM2Processor.show_points(points, labels, ax)
         for i,val in out_obj_ids:
+            print(val)
+            print(i)
             SAM2Processor.show_mask((out_mask_logits[i] > 0.0).cpu().numpy(), ax, obj_id=val)
         
 
