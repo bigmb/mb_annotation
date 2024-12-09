@@ -147,7 +147,7 @@ class SAM2Processor:
         ax.imshow(mask_image)
 
     @staticmethod
-    def show_masks_image( image: np.ndarray, masks: List[np.ndarray],
+    def show_masks_image(image: np.ndarray, masks: List[np.ndarray],
                         scores: List[float], point_coords: Optional[np.ndarray] = None,
                         box_coords: Optional[np.ndarray] = None,
                         input_labels: Optional[np.ndarray] = None,
@@ -324,7 +324,7 @@ class ImagePredictor:
         logits = logits[sorted_ind]
 
         if show:
-            self._visualize_prediction(self.image,masks, scores, points, bbox, labels)
+            self._visualize_prediction(masks, scores, points, bbox, labels)
 
         return masks, scores, logits
     
