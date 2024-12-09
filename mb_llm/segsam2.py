@@ -267,7 +267,7 @@ class VideoPredictor:
         plt.figure(figsize=(10, 10))
         ax = plt.gca()  # Get current axis
         img = Image.open(image_loc)
-        ax.imshow(Image.open(img))
+        ax.imshow(img)
         SAM2Processor.show_points(points, labels, ax)
         for obj_id, (points, labels) in prompts.items():
             SAM2Processor.show_mask((out_mask_logits[obj_id] > 0.0).cpu().numpy(), ax, obj_id=obj_id)
