@@ -156,7 +156,7 @@ class SAM2Processor:
         for i, (mask, score) in enumerate(zip(masks, scores)):
             plt.figure(figsize=(10, 10))
             plt.imshow(image)
-            SAM2Processor.show_mask_image(mask, plt.gca(), borders=borders)
+            SAM2Processor.show_mask(mask, plt.gca(), obj_id=i)
             if point_coords is not None:
                 assert input_labels is not None
                 SAM2Processor.show_points(point_coords, input_labels, plt.gca())
@@ -331,8 +331,8 @@ class ImagePredictor:
     def _visualize_prediction(self, masks: np.ndarray, scores: np.ndarray,points: Optional[np.ndarray] = None,
                             bbox: Optional[np.ndarray] = None, labels: Optional[np.ndarray] = None) -> None:
         """Visualize the prediction."""
-        plt.figure(figsize=(10, 10))
-        plt.imshow(self.image)
+        # plt.figure(figsize=(10, 10))
+        # plt.imshow(self.image)
         SAM2Processor.show_masks_image(self.image, masks, scores, point_coords=points,
                                      box_coords=bbox, input_labels=labels)
 
