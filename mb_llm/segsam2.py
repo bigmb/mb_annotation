@@ -274,8 +274,6 @@ class VideoPredictor:
         ax.imshow(img)
         SAM2Processor.show_points(points, labels, ax)
         for i,val in enumerate(out_obj_ids):
-            print(val)
-            print(i)
             SAM2Processor.show_mask((out_mask_logits[i] > 0.0).cpu().numpy(), ax, obj_id=val)
         
 
@@ -325,7 +323,7 @@ class ImagePredictor:
         logits = logits[sorted_ind]
 
         if show:
-            self._visualize_prediction(masks, scores, points, bbox, labels)
+            self._visualize_prediction(self.image,masks, scores, points, bbox, labels)
 
         return masks, scores, logits
     
