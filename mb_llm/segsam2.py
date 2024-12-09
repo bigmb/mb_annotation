@@ -242,7 +242,7 @@ class VideoPredictor:
         if show:
             image_loc = self.joined_frame_names[frame_idx]
             self._visualize_prediction(image_loc, points, labels,
-                                     prompts, out_mask_logits)
+                                     prompts, out_mask_logits,out_obj_ids)
 
     def predict_video(self, vis_frame_stride: int = 30) -> None:
         """Process all frames in the video."""
@@ -265,15 +265,15 @@ class VideoPredictor:
     
     def _visualize_prediction(self, image_loc: Optional[str], points: Optional[np.ndarray],
                               labels: Optional[np.ndarray], prompts: Dict[int, Tuple[np.ndarray, np.ndarray]], 
-                              out_mask_logits: np.ndarray) -> None:
+                              out_mask_logits: np.ndarray, out_obj_ids: int ) -> None:
         """Visualize the prediction."""
         plt.figure(figsize=(10, 10))
         ax = plt.gca()  # Get current axis
         img = Image.open(image_loc)
         ax.imshow(img)
         SAM2Processor.show_points(points, labels, ax)
-        for obj_id, (points, labels) in prompts.items():
-            SAM2Processor.show_mask((out_mask_logits[obj_id] > 0.0).cpu().numpy(), ax, obj_id=obj_id)
+        for i,val in out_obj_ids:
+            SAM2Processor.show_mask((out_mask_logits[i] > 0.0).cpu().numpy(), ax, obj_id=val)
         
 
 class ImagePredictor:
