@@ -273,7 +273,7 @@ class VideoPredictor:
         img = Image.open(image_loc)
         ax.imshow(img)
         SAM2Processor.show_points(points, labels, ax)
-        for i,val in out_obj_ids:
+        for i,val in enumerate(out_obj_ids):
             print(val)
             print(i)
             SAM2Processor.show_mask((out_mask_logits[i] > 0.0).cpu().numpy(), ax, obj_id=val)
