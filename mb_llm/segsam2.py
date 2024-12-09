@@ -211,7 +211,6 @@ class VideoPredictor:
                     points: Optional[List[List[float]]] = None,
                     labels: Optional[List[int]] = None,
                     frame_idx: int = 0, show: bool = True,
-                    image_loc: Optional[str] = None,
                     gemini_bbox: bool = True, **kwargs) -> None:
         """Make predictions on a single frame."""
         ann_obj_id = 1
@@ -237,6 +236,7 @@ class VideoPredictor:
             **kwargs)
 
         if show:
+            image_loc = self.joined_frame_names[frame_idx]
             self._visualize_prediction(image_loc, points, labels,
                                      prompts, out_mask_logits)
 
