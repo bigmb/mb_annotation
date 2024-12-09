@@ -132,7 +132,8 @@ class SAM2Processor:
         print('Getting final mask')
         return mask_full
 
-    def show_mask(self, mask: np.ndarray, ax: plt.Axes, obj_id: Optional[int] = None,
+    @staticmethod
+    def show_mask(mask: np.ndarray, ax: plt.Axes, obj_id: Optional[int] = None,
                  random_color: bool = False) -> None:
         """Display a mask on a given axis."""
         if random_color:
@@ -165,7 +166,8 @@ class SAM2Processor:
             plt.axis('off')
             plt.show()
 
-    def show_points(self, coords: np.ndarray, labels: np.ndarray,
+    @staticmethod
+    def show_points(coords: np.ndarray, labels: np.ndarray,
                    ax: plt.Axes, marker_size: int = 200) -> None:
         """Display points on an axis."""
         pos_points = coords[labels==1]
@@ -176,7 +178,8 @@ class SAM2Processor:
                   marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
         
 
-    def show_box(self, box: Union[List, np.ndarray], ax: plt.Axes) -> None:
+    @staticmethod
+    def show_box(box: Union[List, np.ndarray], ax: plt.Axes) -> None:
         """Display a bounding box on an axis."""
         x0, y0 = box[0], box[1]
         w, h = box[2] - box[0], box[3] - box[1]
