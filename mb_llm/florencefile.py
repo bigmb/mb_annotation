@@ -77,10 +77,11 @@ class FlorenceModel:
                 trust_remote_code=True
             )
         else:
-            os.makedirs("./florence_model_cache", exist_ok=True)
+            self._ft_file_dir = './florence_model_cache'
+            os.makedirs(self._ft_file_dir, exist_ok=True)
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_name,
-                cache_dir="./florence_model_cache",
+                cache_dir=self._ft_file_dir,
                 trust_remote_code=True
             ).to(self.device)
             self.processor = AutoProcessor.from_pretrained(
@@ -188,7 +189,10 @@ class FlorenceModel:
             save_path (Optional[str]): Path to save the plot
         """
         fig, ax = plt.subplots(figsize=(12, 8))
-        Image.open(image) if image else self.image
+        if image:
+            image = Image.open(image)
+        else:
+            image = self.image
         if show:
             ax.imshow(image)
 
@@ -232,7 +236,7 @@ class FlorenceModel:
 
         Args:
             prediction (Dict[str, List]): Dictionary containing polygons and labels
-            image (Optional[Image.Image]): Image to draw on
+            image (Optional[Image.Image]): Image to draw on or str of image path
             fill_mask (bool): Whether to fill the polygons
             show (bool): Whether to display the result
             save_path (Optional[str]): Path to save the result
@@ -240,7 +244,10 @@ class FlorenceModel:
         Returns:
             Image.Image: Image with drawn polygons
         """
-        image = image or self.image
+        if isinstance(image, str):
+            image = Image.open(image)
+        elif not image:
+            image = self.image
         draw = ImageDraw.Draw(image)
 
         for polygons, label in zip(prediction['polygons'], prediction['labels']):
@@ -277,9 +284,9 @@ class FlorenceModel:
         Load a pretrained model from path.
 
         Args:
-            model_path (str): Path to the model
+            model_path (str): Path to the model folder
         """
-        self.model = AutoModelForCausalLM.from_pretrained(model_path).to(self.device)
+        self.model = AutoModelForCausalLM.from_pretrained(model_path,trust_remote_code=True).to(self.device)
 
     def _my_collate_fn(self,batch: List) -> Tuple[Dict[str, torch.Tensor], List[str]]:
         """
@@ -468,6 +475,7 @@ class FlorenceModel:
         os.makedirs(output_dir, exist_ok=True)
         self.peft_model.save_pretrained(output_dir)
         self.processor.save_pretrained(output_dir)
+        # shutil.copyfile(f"{self._ft_file_dir}+'/models--microsoft--Florence-2-base-ft/snapshots/", f"{output_dir}/epoch_{epoch+1}/snapshots/")
 
 
 
