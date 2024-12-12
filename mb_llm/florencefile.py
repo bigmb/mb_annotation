@@ -135,7 +135,10 @@ class FlorenceModel:
         Returns:
             List[Any]: List of generated results
         """
-        Image.open(image) if image else self.image
+        if isinstance(image, str):
+            self.set_image(image)
+        elif not self.image:
+            print('Image not set. Please provide an image path or set the image.')
         final_ans = []
         for task in self.task_type:
             current_prompt = f"{task}{prompt}" if prompt else task
@@ -175,7 +178,7 @@ class FlorenceModel:
 
 
     def plot_box(self,
-                 data: Dict[str, List],
+                 data: Dict[str, List]= None,
                  image: Optional[str] = None,
                  show: bool = True,
                  save_path: Optional[str] = None) -> None:
@@ -183,21 +186,30 @@ class FlorenceModel:
         Plot bounding boxes on an image.
 
         Args:
-            data (Dict[str, List]): Dictionary containing bounding boxes and labels
-            image (Optional[str]): Image path to plot on
+            data (Dict[str, List]): Dictionary containing bounding boxes and labels. if not provided, it will generate from the image
+            image (Optional[str]): Image path to plot on. If not provided, it will use the set image
             show (bool): Whether to display the plot
             save_path (Optional[str]): Path to save the plot
         """
         fig, ax = plt.subplots(figsize=(12, 8))
-        if image:
-            image = Image.open(image)
-        else:
-            image = self.image
+        if isinstance(image, str):
+            self.set_image(image)
         if show:
+            image = self.image
             ax.imshow(image)
 
-        for bbox, label in zip(data['bboxes'], data['labels']):
-            self._draw_bbox(ax, bbox, label)
+        if self.task_type==None:
+            print('Task type not defined. Using default task type <OD>')
+            self.task_type = ['<OD>']
+        
+        print('Task type:',self.task_type)
+
+        if data == None:
+            data = self.generate_text()           
+
+        for task in self.task_type:
+            for bbox, label in zip(data[0][task]['bboxes'], data[0][task]['labels']):
+                self._draw_bbox(ax, bbox, label)
 
         ax.axis('off')
         if show:
