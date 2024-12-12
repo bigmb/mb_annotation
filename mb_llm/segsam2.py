@@ -382,9 +382,13 @@ class DataProcessor:
 class ModelTrainer:
     """Class for training SAM2 models."""
 
-    def __init__(self, predictor: SAM2ImagePredictor, device: str = 'cpu'):
+    def __init__(self, sam2_checkpoint: str = '../checkpoints/sam2_hiera_large.pt',
+                 model_cfg: str = 'sam2_hiera_l.yaml', device: str = 'cpu'):
         """Initialize ModelTrainer."""
-        self.predictor = predictor
+
+        self.checkpoint = sam2_checkpoint
+        self.model_cfg = model_cfg
+        self.predictor = SAM2ImagePredictor(build_sam2(model_cfg, sam2_checkpoint, device=device,apply_postprocessing=False))
         self.device = device
 
     def train(self, data: Dict, epochs: int = 10, lr: float = 1e-6,
@@ -399,7 +403,7 @@ class ModelTrainer:
         
         os.makedirs("sam_model_checkpoints", exist_ok=True)
 
-        mean_iou = 0
+        self.mean_iou = 0
         for itr in range(epochs):
             with torch.amp.autocast(device_type=self.device):
                 image, mask, input_point, input_label = DataProcessor.read_batch(data)
@@ -456,10 +460,10 @@ class ModelTrainer:
         score_loss = torch.abs(prd_scores[:, 0] - iou).mean()
         
         if itr == 0:
-            mean_iou = 0
-        mean_iou = mean_iou * 0.99 + 0.01 * np.mean(iou.cpu().detach().numpy())
+            self.mean_iou = 0
+        self.mean_iou = self.mean_iou * 0.99 + 0.01 * np.mean(iou.cpu().detach().numpy())
 
-        print(f"Iteration {itr}, Segmentation Loss: {seg_loss.item()}, Score Loss: {score_loss.item()}, Mean IOU: {mean_iou}")
+        print(f"Iteration {itr}, Segmentation Loss: {seg_loss.item()}, Score Loss: {score_loss.item()}, Mean IOU: {self.mean_iou}")
         return seg_loss + score_loss * 0.05
 
     def _save_checkpoint(self, iteration: int, save_all: bool) -> None:
@@ -469,6 +473,10 @@ class ModelTrainer:
         else:
             path = "./sam_model_checkpoints/sam_model.pt"
         torch.save(self.predictor.model.state_dict(), path)
+
+    def _load_checkpoint(self, path: str) -> None:
+        """Load model checkpoint."""
+        self.predictor.model.load_state_dict(torch.load(path))
 
 
 # Create convenience functions that use the classes
