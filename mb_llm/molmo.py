@@ -36,7 +36,7 @@ class MolmoModel:
     """
 
     def __init__(self, 
-                 model_name: str = "allenai/Molmo-7B-D-0924",
+                 model_name: str = "allenai/Molmo-1B-0924",
                  model_path: Optional[str] = None,
                  processor: Optional[Any] = None,
                  device: str = 'cpu') -> None:
